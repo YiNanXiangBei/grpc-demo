@@ -1,0 +1,16 @@
+syntax = "proto3";
+option go_package = "api/simple";
+
+package simple;
+
+message SimpleRequest {
+  string name = 1;
+}
+
+message SimpleResponse {
+  string message = 1;
+}
+
+service SimpleService {
+  rpc Get(SimpleRequest) returns (SimpleResponse) {}
+}
