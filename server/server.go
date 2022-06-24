@@ -6,10 +6,19 @@ import (
 	"log"
 	"net"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/resolver"
 
 	pb "grpc-demo/api/user"
+	"grpc-demo/register"
+)
+
+var (
+	scheme      = "user"
+	serviceName = "gprc.demo.user"
+	addr        = "127.0.0.1:8012"
 )
 
 type User struct {
@@ -47,10 +56,34 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			UserServerInterceptor,
+			WorldInterceptor,
+		)),
+	}
+	s := grpc.NewServer(opts...)
 	pb.RegisterUserServiceServer(s, &User{})
 	err = s.Serve(listen)
 	if err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+}
+
+func UserServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log.Println("你好")
+	resp, err := handler(ctx, req)
+	log.Println("再见")
+	return resp, err
+}
+
+func WorldInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log.Println("你好，世界")
+	resp, err := handler(ctx, req)
+	log.Println("再见，世界")
+	return resp, err
+}
+
+func init() {
+	resolver.Register(register.NewResolverBuilder(scheme, serviceName, addr))
 }
